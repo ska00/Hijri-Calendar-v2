@@ -19,7 +19,7 @@ year or at the end depending on when the gap between the solar year and lunar ye
 
 Similar to the traditional Hijri (Islamic) calendar, the months officially start on the day after observing the new moon. Except that this new calendar starts on the day after the _full moon_ is observed.This means that the length of each month can vary from 29 to 30. Check out the file named [hijri_calendar_observed.py](https://github.com/ska00/Hijra-Calendar-v2/blob/main/hijri_calendar_observed.py)
 
-Look at "Hijri Calendar Years 600 - 4000" for example of output.
+Look at "Hijri Calendar Years 600 - 4000" for example of the output.
 
 ### When is the 13th month added?
 
