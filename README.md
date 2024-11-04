@@ -15,11 +15,11 @@ is what motivated this project.
 This project introduces a new type of Hirji Calendar that remains in sync with the solar year (and therefore the Gregorian year). To achieve this a 13th month must be added every 2 to 3 years.
 The Hijri months are (in order): Safar I, Safar II, Rabi I, Rabi II, Jumada I, Jumada II, Rajab, Sha'ban, Ramadan, Shawwal, Dhul Qadah, and Dhul Hijjah. Notice that the month 
 Muharram has been removed from the traditional Hijri calendar; instead it has been replaced by Safar II, and Safar has been renamed to Safar I. The 13th month _is_ Muharram, which sometimes appears at the start of the 
-year or at the end depending on when the gap between the solar year and lunar year diverge most. This keeps the Hijri months in their relative seasons. (see )
+year or at the end depending on when the gap between the solar year and lunar year diverge most. This keeps the Hijri months in their relative seasons (see the section below for more information).
 
-Similar to the traditional Hijri (Islamic) calendar, the months officially start on the day after observing the new moon. Except that this new calendar starts on the day after the _full moon_ is observed.This means that the length of each month can vary from 29 to 30. Check out the file named [hijri_calendar_observed.py](https://github.com/ska00/Hijra-Calendar-v2/blob/main/hijri_calendar_observed.py)
+Similar to the traditional Hijri (Islamic) calendar, the months officially start on the day after observing the new moon. Except that this new calendar starts on the day after the _full moon_ is observed.This means that the length of each month can vary from 29 to 30. Check out the file [hijri_calendar_observed.py](https://github.com/ska00/Hijri-Calendar-v2/blob/main/hijri_calendar_observed.py)
 
-Look at "Hijri Calendar Years 600 - 4000" for example of output.
+Look at "Hijri Calendar Years 600 - 4000" for example of the output. 
 
 ### When is the 13th month added?
 
@@ -34,7 +34,7 @@ the extra month is placed again depending on whether this gap exceeded it's limi
 
 ### A More Consistent Hirji Calendar (Experimental)
 
-Look at [hijri_calendar_consistent.py](https://github.com/ska00/Hijra-Calendar-v2/blob/main/hijri_calendar_consistent.py) for an attempt at fixing the number of days of each Hijri month, thus making the calendar somewhat more predictable. However, since they are fixed, an additional day must sometimes be added to Dhul Hijjah (the 12th month). This also means that the beginning of the month does not always coincide with the full moon and might start sooner or later.
+Look at [hijri_calendar_consistent.py](https://github.com/ska00/Hijri-Calendar-v2/blob/main/hijri_calendar_consistent.py) for an attempt at fixing the number of days of each Hijri month, thus making the calendar somewhat more predictable. However, since they are fixed, an additional day must sometimes be added to Dhul Hijjah (the 12th month). This also means that the beginning of the month does not always coincide with the full moon and might start sooner or later.
 
 
 
