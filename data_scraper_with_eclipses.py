@@ -27,8 +27,8 @@
 
 # ----------- Choose start year and end year (Gregorian) --------
 
-START_YEAR = 601        # AD
-END_YEAR = 2000         # AD
+START_YEAR = 1        # AD
+END_YEAR = 701         # AD
 
 
 """------------------ PACKAGES -------------------"""

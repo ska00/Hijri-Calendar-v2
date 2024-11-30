@@ -70,6 +70,7 @@ FILES = [
 		]
 
 FILES_W_ECLIPSES = [
+		{"start_year":  1, "end_year": 800, "filename": "moon-phases-1-to-800-with-eclipses-UTC.csv"},
 		{"start_year":  601, "end_year": 700, "filename": "moon-phases-601-to-700-with-eclipses-UTC.csv"},
 		{"start_year":  601, "end_year": 2100, "filename": "moon-phases-601-to-2100-with-eclipses-UTC.csv"},
 		{"start_year":  601, "end_year": 4000, "filename": "moon-phases-601-to-4000-with-eclipses-UTC.csv"},
@@ -169,13 +170,196 @@ def parse_file_with_eclipses(start_year, end_year):
 	return entries
 
 
+
+def get_before_hijri_year_starts():
+	'''	
+		The reverse?
+		Start from 1 CE and then count the years. 622 = 1. 621 = 0, 620 = -1, 1 = 621 B.H. or -621 H.
+	'''
+	'''	--------- GLOBALS* (*not really..) ------------ '''
+	start_year = 1
+	end_year = 800
+	# entries = parse_file(start_year, end_year)
+	entries = parse_file_with_eclipses(start_year, end_year)
+	entries_length = len(entries)
+
+
+	def get_muharram_position(index, year):
+		"""
+			This checks if the given year contains a blue moon (or 13 full moons) and returns
+			the position (1) if the blue moon occurs in the months 1 - 6 inclusive, 13 if in the 
+			months 7 - 12 inclusive. Otherwise, if there is no Muharram month it will return -1.
+
+			Note: This is defined within main so that it can access the variable 'entries'.
+				It is not ideal to nest this function within main but it is less ideal to pass in the 
+				large list 'entries'. It significantly slows down the program.
+		"""
+		_month_count = 1
+		_index = index
+
+		while(_month_count < 14):
+			try:
+				_start_month = datetime.strptime(entries[_index]["datetime"], DATEFORMAT).month
+				_end_month = datetime.strptime(entries[_index + 1]["datetime"], DATEFORMAT).month
+				_year = datetime.strptime(entries[_index]["datetime"], DATEFORMAT).year
+			except:
+				return -1
+
+			if _year > year:
+				return -1
+
+			if _start_month == _end_month:
+				return 1 if _month_count <= 6 else 13
+
+			_month_count += 1
+			_index += 1
+
+		return -1	
+
+
+	'''	--------- VARIABLES ------------ '''
+
+	end_month = -1   		# Placeholder for the date of the end of the month
+	hirji_year = start_year - HIRJI_START_YEAR + 1  		# Hirji year
+	lunar_days = 0   		# Number of days in the Hirji Calendar
+	lunar_days_off = 0  	# Number of days difference between Hirji calendar and true full moon observations
+	month_count = 0 		# Which month we're in, look at 'HIJRI_MONTHS'
+	muharram_position = -1  # The position the month 'Muharram' falls into
+
+
+	for i in range(entries_length):
+
+		# Get start and end of calendar month from Gregorian (True i.e. observed Full Moon)
+		gregorian_start_month = datetime.strptime(entries[i]["datetime"], DATEFORMAT)
+		gregorian_end_month = datetime.strptime(entries[i + 1]["datetime"], DATEFORMAT)
+
+		# If loop just started set start of month to Gregorian full moon date.
+		if end_month == -1:
+			start_month = datetime.strptime(entries[i]["datetime"], DATEFORMAT) + timedelta(days = 1)
+
+
+		# Hijri Calendar only exists at and after 622 AD
+		# if gregorian_start_month.year < HIRJI_START_YEAR:
+		# 	hijri_year = gregorian_start_month.year - HIRJI_START_YEAR
+
+		# Add month count
+		month_count += 1
+		# Get end of calendar month
+		end_month = start_month + timedelta(days = HIJRI_MONTHS_DAYCOUNT[month_count])
+
+		
+		# -------------------------------- TIMEZONE ------------------------------------
+		# Assign UTC to naive datetime objects
+		start_month.replace(tzinfo = pytz.utc).astimezone(MECCA_TIMEZONE)
+		end_month.replace(tzinfo = pytz.utc).astimezone(MECCA_TIMEZONE)
+		gregorian_start_month.replace(tzinfo = pytz.utc).astimezone(MECCA_TIMEZONE)
+		gregorian_end_month.replace(tzinfo = pytz.utc)
+
+		# Convert to MECCA time zone
+		start_month = start_month.astimezone(MECCA_TIMEZONE)
+		end_month = end_month.astimezone(MECCA_TIMEZONE)
+		gregorian_start_month = gregorian_start_month.astimezone(MECCA_TIMEZONE)
+		gregorian_end_month = gregorian_end_month.astimezone(MECCA_TIMEZONE)
+
+		
+		"""
+			Calculate the difference of the true full moon (Gregorian) from the (Hirji) calendar full moon
+			You can either calculate deviation in the start of the month or the end of the month.
+		"""
+		# lunar_days_off = (end_month - gregorian_end_month).total_seconds() /(24 * 3600)
+		lunar_days_off = (start_month - gregorian_start_month).total_seconds() /(24 * 3600)
+			
+
+		"""
+			If it's kabs month (Dhul Hijjah) and its off by more than a day (note: we want to be off by 1 day because
+			calendar month starts AFTER a full moon is observed barring occassional deviations) add an extra day. 
+			This ensures no difference more than THREE whole days happens.
+		"""
+		# Adjust length of the month accordingly if it's KABS month
+		if lunar_days_off <= LIMIT_LUNAR_DAYS_OFF and month_count == KABS_MONTH and muharram_position == -1:
+			end_month += timedelta(days = 1)			# Add a day to the end of the month
+			HIJRI_MONTHS_DAYCOUNT[KABS_MONTH] = 30  	# This is for printing purposes
+		
+		else:
+			HIJRI_MONTHS_DAYCOUNT[KABS_MONTH] = 29
+
+
+		if lunar_days_off > 3 or lunar_days < -3:
+			print("\nTERMINATING PROGRAM: LUNAR DAYS MORE THAN THREE WHOLE DAYS OFF")
+			print(f"\nLUNAR DAYS OFF: {lunar_days_off}")
+			print("\n[FAILURE] Computing Hijri Calendar\n")
+			sys.exit(1)
+
+		# Keep track of lunar days
+		lunar_days += HIJRI_MONTHS_DAYCOUNT[month_count]
+
+		# Print the day
+		print(f"{start_month.strftime('%a')}")
+
+		# Print Hijri Month
+		print(f"{HIJRI_MONTHS[month_count]} {HIJRI_MONTHS_DAYCOUNT[month_count]} \t\t\t\t\t\t\t\t\t\t\t\t\t\t{entries[i]['eclipse']}")
+
+		# Print the Gregorian date
+		print(f"\tFull Moon Observed: "+ 
+			f"{gregorian_start_month.strftime('%B %d, %Y')} - {(gregorian_end_month - timedelta(days=1)).strftime('%B %d, %Y')}")
+
+		# Print the Hirji Calendar in Gregorian
+		print(f"\tHijri (Gregorian) \t{start_month.strftime('%B %d, %Y')} - {(end_month - timedelta(days=1)).strftime('%B %d, %Y')}")
+
+		# Print Hijri calendar Natural
+		print(f"\tHijri (Natural): \t{HIJRI_MONTHS[month_count]} {1}, {hirji_year} - "
+				+ f"{HIJRI_MONTHS[month_count]} {HIJRI_MONTHS_DAYCOUNT[month_count]}, {hirji_year}")
+		
+		# print("\t\t\t\t\t\tDays off:", lunar_days_off)
+		print()
+
+
+		# -------- END OF YEAR ---------
+		if end_month.month == 1 and start_month.month != 1:
+
+			# Check deviation of Hijri year (in days) from solar year
+			if abs(SOLARYEAR_DAYS - lunar_days) > 30:
+				print("\nTERMINATING PROGRAM: HIRJI YEAR IS OFF FROM SOLAR YEAR BY MORE THAN 30 DAYS")
+				print("\n[FAILURE] Computing Hijri Calendar\n")
+
+				sys.exit(2)
+
+			upcoming_year = end_month.year
+
+			# Exit if last year
+			if upcoming_year == end_year: 	
+				break;
+
+			print(f"\n------------------------------- THE YEAR IS {upcoming_year} ------------------------------\n")
+				
+
+			hirji_year += 1
+			lunar_days  = 0
+			month_count = 0
+			muharram_position = get_muharram_position(i, upcoming_year)
+
+			# If Muharram is beginning of year shift all the months down
+			if muharram_position == 1:
+				month_count = -1
+
+			# For debugging purposes
+			print(f"Muharram position:", muharram_position); print()
+
+		# Go the next month
+		start_month = end_month
+
+
+	print("\n[SUCCESS] Computing Hijri Calendar\n")
+	
+
+
 '''	----------- MAIN -------------- '''
 
 def main():
 
 	'''	--------- GLOBALS* (*not really..) ------------ '''
 	start_year = 601
-	end_year = 4000
+	end_year = 700
 	# entries = parse_file(start_year, end_year)
 	entries = parse_file_with_eclipses(start_year, end_year)
 	entries_length = len(entries)
@@ -291,6 +475,9 @@ def main():
 		# Keep track of lunar days
 		lunar_days += HIJRI_MONTHS_DAYCOUNT[month_count]
 
+		# Print the day
+		print(f"{start_month.strftime('%a')}")
+
 		# Print Hijri Month
 		print(f"{HIJRI_MONTHS[month_count]} {HIJRI_MONTHS_DAYCOUNT[month_count]} \t\t\t\t\t\t\t\t\t\t\t\t\t\t{entries[i]['eclipse']}")
 
@@ -351,3 +538,4 @@ def main():
 '''	------- EXECUTE MAIN ---------- '''
 if __name__ == "__main__":
 	main()
+
