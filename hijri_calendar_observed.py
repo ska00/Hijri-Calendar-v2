@@ -6,6 +6,11 @@ This the observation-based Hijri calendar, meaning each month starts the day aft
 This means that the days of each month vary each year in an unpredictable way, either 29 or 30 days.
 This is identical to the Islamic calendar with the exception of adding a 13th month occasionally.
 
+The Hijri year starts at 622 A.D. so any Hijri year on or after this year is denoted with the suffix 'H.'.
+Hirji Years before this year are denoted with 'B.H.'. H. stands for Hirji and B.H. stands for Before Hirji.
+Note that there is no 0 H., 1 B.H. immediately leads to 1 H. This was adapted from the Gregorian system
+(1 B.C.E leads to 1 C.E)
+
 The 13th month (Muharram) is sometimes added at the end of the year, or at the start depending
 on where the the large gap between seasons (i.e. the solar year) and the hijri (lunar) year occurs.
 I looked for the Gregorian months in which two full moons occur (called a blue moon) and depending 
@@ -40,8 +45,6 @@ print("Packages imported successfully")
 
 '''	--------- CONSTANTS ------------ '''
 
-AVG_SYNODIC_MONTH = 29 + 12 / 24 + (44/60 / 24)	# 29 days, 12 hours, 44 minutes -> 29.530594 days
-
 DATEFORMAT = "%Y-%m-%d %H:%M:%S"
 
 FILES = [ 
@@ -57,15 +60,16 @@ FILES = [
 		]
 
 FILES_W_ECLIPSES = [
-		{"start_year":  601, "end_year": 700, "filename": "moon-phases-601-to-700-with-eclipses-UTC.csv"},
+		{"start_year":  1, 	 "end_year": 800,  "filename": "moon-phases-1-to-800-with-eclipses-UTC.csv"},
+		{"start_year":  601, "end_year": 700,  "filename": "moon-phases-601-to-700-with-eclipses-UTC.csv"},
 		{"start_year":  601, "end_year": 2100, "filename": "moon-phases-601-to-2100-with-eclipses-UTC.csv"},
 		{"start_year":  601, "end_year": 4000, "filename": "moon-phases-601-to-4000-with-eclipses-UTC.csv"},
 		]
 
 HIJRI_MONTHS = { 0: "Muharram",
-		1: "Safar I", 2: "Safar II", 3: "Rabi I\t", 
-		4: "Rabi II", 5: "Jumada I", 6: "Jumada II",
-		7: "Rajab\t", 8: "Sha'ban", 9: "Ramadan", 
+		1:  "Safar I", 2:  "Safar II", 	 3:  "Rabi I\t", 
+		4:  "Rabi II", 5:  "Jumada I", 	 6:  "Jumada II",
+		7:  "Rajab\t", 8:  "Sha'ban", 	 9:  "Ramadan", 
 		10: "Shawwal", 11: "Dhul Qadah", 12: "Dhul Hij."
 		}
 
@@ -74,15 +78,25 @@ HIRJI_START_YEAR = 622 # AD
 # Add the 13th month: Muharram
 HIJRI_MONTHS[13] = "Muharram"  		# Muharram is placed at end of year
 
-MUHARRAM_YEARS = [3, 6, 8, 11, 14, 17, 19] #[1, 4, 6, 9, 12, 15, 17]
-
 MECCA_TIMEZONE = pytz.timezone('Asia/Riyadh')
 
 
 '''	-------- FUNCTIONS ------------ '''
 
+def convert_timezone_to_mecca(datetime):
+	# Assign UTC to naive datetime objects
+	datetime.replace(tzinfo = pytz.utc)
+
+	# Convert to MECCA time zone and return
+	return datetime.astimezone(MECCA_TIMEZONE)
+
+
 def is_fullmoon(row):
 	return row["phase"] == "Full Moon"
+
+
+def get_hijri_year_notated(hijri_year):
+	return str(abs(hijri_year)) + (" B.H" if hijri_year < 0 else " H.")
 
 
 def get_filename(start_year, end_year, contains_eclipse = False):
@@ -96,13 +110,15 @@ def get_filename(start_year, end_year, contains_eclipse = False):
 
 	raise FileNotFoundError
 
+
 def parse_file(start_year, end_year, include_eclipses = False):
 	""" Reads file, recording entries only when it's a full moon """
 
+	# Run the function below instead if eclipses are included
 	if include_eclipses:
 		return parse_file_with_eclipses(start_year, end_year)
 
-	filename = "Moon phases CSV files/" + get_filename(start_year, end_year)
+	filename = "Moon phases CSV files/" + get_filename(start_year, end_year, False)
 
 	entries = []
 	with open(filename, "r") as csvfile:
@@ -150,8 +166,8 @@ def parse_file_with_eclipses(start_year, end_year):
 def main():
 
 	'''	--------- GLOBALS* ------------ '''
-	start_year = 601
-	end_year = 4000
+	start_year = 1
+	end_year = 800
 	entries = parse_file(start_year, end_year, True)
 	entries_length = len(entries)
 
@@ -192,52 +208,43 @@ def main():
 
 	'''	--------- VARIABLES ------------ '''
 
-	# hijri_month_lens = {29: 0, 30: 0}
-	hijri_year = 1  					# Hirji year
-	month_count = 0 					# Which month we're in, look at 'HIJRI_MONTHS'
-	muharram_position = -1  			# The position the month 'Muharram' falls into
+	hijri_year = start_year - HIRJI_START_YEAR
+
+	# Will output negative years as B.H, positive years as H.
+	hijri_year_notated = get_hijri_year_notated(hijri_year)				
+	
+	month_count = 0 					# Which Hijri month we're in, look at 'HIJRI_MONTHS'
+	muharram_position = -1  			# The month position 'Muharram' falls into
 	
 	for i in range(entries_length):
+		
+		# Go to next month
+		month_count += 1
 
-		# If loop just started set start of month to Gregorian full moon date.
+		# Set start of month to Gregorian full moon date plus one extra day (Hijri month starts one day after the full moon is observed)
 		start_month = datetime.strptime(entries[i]["datetime"], DATEFORMAT) + timedelta(days = 1)
 		end_month = datetime.strptime(entries[i + 1]["datetime"], DATEFORMAT)
 
+		# Remove hour difference, we only care about the days
 		start_month.replace(hour = 0, minute = 0, second = 0)
 		end_month.replace(hour = 0, minute = 0, second = 0)
 
-		# Get start and end of calendar month from Gregorian (True i.e. observed Full Moon)
+		# Get start and end of full moon month from Gregorian
 		gregorian_start_month = datetime.strptime(entries[i]["datetime"], DATEFORMAT)
 		gregorian_end_month = datetime.strptime(entries[i + 1]["datetime"], DATEFORMAT)
 
+		# Convert timezone of datetime objects
+		start_month = convert_timezone_to_mecca(start_month)
+		end_month = convert_timezone_to_mecca(end_month)
+		gregorian_start_month = convert_timezone_to_mecca(gregorian_start_month)
+		gregorian_end_month = convert_timezone_to_mecca(gregorian_end_month)
 
-		# Hijri Calendar only exists at and after 622 AD
-		if start_month.year < HIRJI_START_YEAR:
-			continue;
+		# Get length of hijri month and hijri year notated
+		hijri_month_len = round((end_month - start_month).total_seconds() / (24 * 3600)) + 1
+		hijri_year_notated = get_hijri_year_notated(hijri_year)
 
-		# Add month count
-		month_count += 1
 
-		
-		# -------------------------------- TIMEZONE ------------------------------------
-		# Assign UTC to naive datetime objects
-		start_month.replace(tzinfo = pytz.utc)
-		end_month.replace(tzinfo = pytz.utc)
-		gregorian_start_month.replace(tzinfo = pytz.utc)
-		gregorian_end_month.replace(tzinfo = pytz.utc)
-
-		# Convert to MECCA time zone
-		start_month = start_month.astimezone(MECCA_TIMEZONE)
-		end_month = end_month.astimezone(MECCA_TIMEZONE)
-		gregorian_start_month = gregorian_start_month.astimezone(MECCA_TIMEZONE)
-		gregorian_end_month = gregorian_end_month.astimezone(MECCA_TIMEZONE)
-
-		
-
-		# Length of hirji month
-		hijri_month_len = round((end_month - start_month).total_seconds() / (24* 3600)) + 1
-		# hijri_month_lens[hijri_month_len] += 1
-
+		# ---------------------------- PRINT OUTPUT ------------------------------
 		# Print Hijri Month
 		print(f"{HIJRI_MONTHS[month_count]} {hijri_month_len}")
 
@@ -249,11 +256,11 @@ def main():
 		print(f"\tHijri (Gregorian) \t{start_month.strftime('%B %d, %Y')} - {end_month.strftime('%B %d, %Y')}")
 
 		# Print Hijri calendar
-		print(f"\tHijri (Natural): \t{HIJRI_MONTHS[month_count]} {1}, {hijri_year} - "
-				+ f"{HIJRI_MONTHS[month_count]} {hijri_month_len}, {hijri_year} \n")
+		print(f"\tHijri (Natural): \t{HIJRI_MONTHS[month_count]} {1}, {hijri_year_notated} - "
+				+ f"{HIJRI_MONTHS[month_count]} {hijri_month_len}, {hijri_year_notated} \n")
 
 
-		# -------- END OF YEAR ---------
+		# ------------------------ CHECK IF YEAR ENDED -------------------------------
 		if (end_month.month == 1 and start_month.month != 1) or month_count == 13:
 
 			upcoming_year = end_month.year
@@ -261,15 +268,19 @@ def main():
 			# Exit if last year
 			if upcoming_year == end_year: 	
 				break;
-
-			# print(f"Number of months with 29 days: {hijri_month_lens[29]}, Number of months with 30 days: {hijri_month_lens[30]}")
-
-			print(f"\n------------------------- GREGORIAN YEAR: {upcoming_year}, HIRJI YEAR: {hijri_year + 1} -----------------------\n")
-				
-			# hijri_month_lens = {29: 0, 30: 0}
+	
 			hijri_year += 1
+			# So that there is no 0 H., 1 B.H. immediately leads to 1 H. similar to the Gregorian system
+			if hijri_year == 0:
+				hijri_year = 1
+			
+			hijri_year_notated = get_hijri_year_notated(hijri_year)
 			month_count = 0
 			muharram_position = get_muharram_position(i, upcoming_year)
+
+
+			print(f"\n------------------------- GREGORIAN YEAR: {upcoming_year}, HIRJI YEAR: {hijri_year_notated} -----------------------\n")
+			
 
 			# If Muharram is beginning of year shift all the months down
 			if muharram_position == 1:
