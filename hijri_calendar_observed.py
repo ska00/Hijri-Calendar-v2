@@ -95,6 +95,10 @@ def is_fullmoon(row):
 	return row["phase"] == "Full Moon"
 
 
+def is_eclipse(row):
+	return row["eclipse"] != ""
+
+
 def get_hijri_year_notated(hijri_year):
 	return str(abs(hijri_year)) + (" B.H" if hijri_year < 0 else " H.")
 
@@ -111,8 +115,31 @@ def get_filename(start_year, end_year, contains_eclipse = False):
 	raise FileNotFoundError
 
 
+def get_eclipse_dates(start_year, end_year):
+	
+	filename = "Moon phases CSV files w eclipses/" + get_filename(start_year, end_year, True)
+
+	entries = []
+
+	with open(filename, "r") as csvfile:
+		reader = csv.DictReader(csvfile)
+		entries = list(filter(is_eclipse, reader))
+
+			
+	print("\nFile parsed successfully\n")
+	return entries
+
+
+
 def parse_file(start_year, end_year, include_eclipses = False):
-	""" Reads file, recording entries only when it's a full moon """
+	""" 
+		Reads file, recording entries only when it's a full moon 
+
+		returns entries: a list of dictionaries. 
+		Each entry has keys: 'datetime', 'phase', 'friendlydate' 
+		(and 'eclipse' if include_eclipses = True)
+		 and records the date where a full moon occurred.
+	"""
 
 	# Run the function below instead if eclipses are included
 	if include_eclipses:
@@ -130,7 +157,14 @@ def parse_file(start_year, end_year, include_eclipses = False):
 
 
 def parse_file_with_eclipses(start_year, end_year):
-	""" Reads file, recording entries only when it's a full moon including eclipse tags """
+	""" 
+		Reads file, recording entries only when it's a full moon including eclipse tags 
+
+		returns entries: a list of dictionaries. 
+		Each entry has keys: 'datetime', 'phase', 'friendlydate', and 'eclipse'
+		 and records the date where a full moon occurred. All the eclipses are bunched into the
+		 hijri month they occurred in with the dates they occur on.
+	"""
 
 	filename = "Moon phases CSV files w eclipses/" + get_filename(start_year, end_year, True)
 
@@ -166,9 +200,9 @@ def parse_file_with_eclipses(start_year, end_year):
 def main():
 
 	'''	--------- GLOBALS* ------------ '''
-	start_year = 1
-	end_year = 800
-	entries = parse_file(start_year, end_year, True)
+	start_year = 601
+	end_year = 2100
+	entries = parse_file(start_year, end_year, include_eclipses = True)
 	entries_length = len(entries)
 
 
