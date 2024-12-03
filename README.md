@@ -13,6 +13,8 @@ Look at [Example-Hijri-Calendar-Years-600-to-4000.txt](https://github.com/ska00/
 
 This Hirji Calendar accounts for years before its beginning on 622 A.D. Any year before 622 A.D is denoted with the suffix B.H. (Before Hirji) and any year after is denoted with H. (Hirji). This follows the same system as is used for B.C.E and C.E years. You can take a look of this system here: [Example-Hijri-Calendar-Years-1-to-800.txt](https://github.com/ska00/Hijri-Calendar-v2/blob/main/Example-Hijri-Calendar-Years-1-to-800.txt).
 
+**Update**: You can have the calendar also output the dates and types of eclipses that occurred in the Hijri calendar. Take a look at [Example-Hijri-Calendar-Years-1-to-800-with-eclipses.txt](https://github.com/ska00/Hijri-Calendar-v2/blob/main/Example-Hijri-Calendar-Years-1-to-800-with-eclipses.txt).
+
 ## Background: The Hijri (Islamic) Calendar
 
 The traditional Hijri (also called Islamic) calendar, a lunar calendar, is always ~11 days short of the Gregorian (Solar) calendar. This leads to the Hijri months shifting little by little each year. For example, 
