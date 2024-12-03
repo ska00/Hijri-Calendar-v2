@@ -37,6 +37,7 @@ import csv
 import math
 import pytz
 import sys
+import time
 from datetime import datetime, timedelta
 
 
@@ -67,9 +68,9 @@ FILES_W_ECLIPSES = [
 		]
 
 HIJRI_MONTHS = { 0: "Muharram",
-		1:  "Safar I", 2:  "Safar II", 	 3:  "Rabi I\t", 
+		1:  "Safar I", 2:  "Safar II", 	 3:  "Rabi I", 
 		4:  "Rabi II", 5:  "Jumada I", 	 6:  "Jumada II",
-		7:  "Rajab\t", 8:  "Sha'ban", 	 9:  "Ramadan", 
+		7:  "Rajab",   8:  "Sha'ban", 	 9:  "Ramadan", 
 		10: "Shawwal", 11: "Dhul Qadah", 12: "Dhul Hij."
 		}
 
@@ -103,10 +104,10 @@ def get_hijri_year_notated(hijri_year):
 	return str(abs(hijri_year)) + (" B.H" if hijri_year < 0 else " H.")
 
 
-def get_filename(start_year, end_year, contains_eclipse = False):
+def get_filename(start_year, end_year, include_eclipses = False):
 	""" Returns filename of the csv file with the given starting and ending year """
 	
-	_files = FILES_W_ECLIPSES if contains_eclipse else FILES
+	_files = FILES_W_ECLIPSES if include_eclipses else FILES
 
 	for file in _files:
 		if file["start_year"] == start_year and file["end_year"] == end_year:
@@ -161,9 +162,11 @@ def parse_file_with_eclipses(start_year, end_year):
 		Reads file, recording entries only when it's a full moon including eclipse tags 
 
 		returns entries: a list of dictionaries. 
-		Each entry has keys: 'datetime', 'phase', 'friendlydate', and 'eclipse'
+		Each entry has keys: 'datetime', 'phase', 'friendlydate', and 'eclipses'
 		 and records the date where a full moon occurred. All the eclipses are bunched into the
 		 hijri month they occurred in with the dates they occur on.
+
+		 'eclipses' is a list of dictionaries with the headers: "type" and "datetime"
 	"""
 
 	filename = "Moon phases CSV files w eclipses/" + get_filename(start_year, end_year, True)
@@ -172,39 +175,42 @@ def parse_file_with_eclipses(start_year, end_year):
 	eclipses = []
 
 	with open(filename, "r") as csvfile:
-		
 		reader = csv.DictReader(csvfile)
+		
 		for row in reader:
-			
-			if row["phase"] != "Full Moon":
-				if eclipse := row["eclipse"]:
-					eclipses.append(eclipse)
-				continue
 
-			if eclipses != []:
-				if entries[-1]["eclipse"] == "":
-					entries[-1]["eclipse"] = ", ".join(eclipses)
-				else:
-					entries[-1]["eclipse"] = entries[-1]["eclipse"] + ", " + ", ".join(eclipses)
+			if row["eclipse"]:
+				eclipses.append({"type": row["eclipse"], 
+								 "datetime": row["datetime"]})
+
+			if row["phase"] == "Full Moon":
+				
+				# Add all eclipses that have occured to the previous month
+				if eclipses:
+					entries[-1]["eclipses"] = eclipses
+				
 				eclipses = []
-			
-			entries.append(row)
 
+				# This is just to change the name of the key to be more consistent
+				del row["eclipse"]
+				row ["eclipses"] = []
+
+				entries.append(row)
 			
 	print("\nFile parsed successfully\n")
 	return entries
-
 
 '''	----------- MAIN -------------- '''
 
 def main():
 
 	'''	--------- GLOBALS* ------------ '''
-	start_year = 601
-	end_year = 2100
-	entries = parse_file(start_year, end_year, include_eclipses = True)
-	entries_length = len(entries)
+	start_year = 1
+	end_year = 800
+	include_eclipses = True
 
+	entries = parse_file(start_year, end_year, include_eclipses = include_eclipses)
+	entries_length = len(entries)
 
 	def get_muharram_position(index, year):
 		"""
@@ -291,19 +297,32 @@ def main():
 
 		# Print Hijri calendar
 		print(f"\tHijri (Natural): \t{HIJRI_MONTHS[month_count]} {1}, {hijri_year_notated} - "
-				+ f"{HIJRI_MONTHS[month_count]} {hijri_month_len}, {hijri_year_notated} \n")
+				+ f"{HIJRI_MONTHS[month_count]} {hijri_month_len}, {hijri_year_notated}")
 
+		# Print the eclipses that occurred
+		if include_eclipses:
+			for eclipse in entries[i]["eclipses"]:
+				eclipse_gregorian_date = convert_timezone_to_mecca(datetime.strptime(eclipse["datetime"], DATEFORMAT))
+				eclipse_hijri_day = (eclipse_gregorian_date - start_month).days + 1  	# Add 1 day since month starts one day after full moon
+				eclipse_type = eclipse["type"]
+				
+				print(f"\n* Type of eclipse: {eclipse_type}")
+				print(f"  Gregorian date:  {eclipse_gregorian_date.strftime('%B %d, %Y')}")
+				print(f"  Hijri date: 	   {HIJRI_MONTHS[month_count]}, {eclipse_hijri_day}")
+		
+		print()
 
 		# ------------------------ CHECK IF YEAR ENDED -------------------------------
 		if (end_month.month == 1 and start_month.month != 1) or month_count == 13:
 
 			upcoming_year = end_month.year
 
-			# Exit if last year
+			# Exit loop if last year
 			if upcoming_year == end_year: 	
 				break;
 	
 			hijri_year += 1
+			
 			# So that there is no 0 H., 1 B.H. immediately leads to 1 H. similar to the Gregorian system
 			if hijri_year == 0:
 				hijri_year = 1
@@ -328,7 +347,7 @@ def main():
 
 
 
-'''	------- EXECUTE MAIN ---------- '''
+'''	------------------ EXECUTE MAIN -------------------- '''
 if __name__ == "__main__":
 	main()
 
