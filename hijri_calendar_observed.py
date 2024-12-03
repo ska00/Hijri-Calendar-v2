@@ -116,6 +116,7 @@ def get_filename(start_year, end_year, include_eclipses = False):
 	raise FileNotFoundError
 
 
+# You can use this function to get a list of all the eclipses and their (Gregorian) dates
 def get_eclipse_dates(start_year, end_year):
 	
 	filename = "Moon phases CSV files w eclipses/" + get_filename(start_year, end_year, True)
@@ -207,7 +208,8 @@ def main():
 	'''	--------- GLOBALS* ------------ '''
 	start_year = 1
 	end_year = 800
-	include_eclipses = True
+	# Make sure to change this variable and not the one in the function. Otherwise an error will occur while printing the output
+	include_eclipses = True		
 
 	entries = parse_file(start_year, end_year, include_eclipses = include_eclipses)
 	entries_length = len(entries)
